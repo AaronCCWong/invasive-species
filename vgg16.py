@@ -55,3 +55,15 @@ class Vgg16:
 
     def get_batches(self, dir, gen=ImageDataGenerator(), batch_size=32):
         return gen.flow_from_directory(dir, batch_size=batch_size)
+
+    def finetune(self):
+        model = self.model
+        model.pop()
+        for layer in model.layers:
+            layer.trainable = False
+        model.add(Dense(2, activation='softmax'))
+
+    def fit(self, batches, steps, epochs=1, validation_batches=None, validation_steps=None):
+        return self.model.fit_generator(batches, steps, epochs=epochs,
+                validation_data=validation_batches,
+                validation_steps=validation_steps)
