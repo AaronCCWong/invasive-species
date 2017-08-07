@@ -2,9 +2,10 @@ import json
 import numpy as np
 
 from keras.models import Sequential
-from keras.layers import Flatten, Dense, Lambda
+from keras.layers import Flatten, Dense, Lambda, Dropout
 from keras.layers.convolutional import Conv2D, ZeroPadding2D
 from keras.layers.pooling import MaxPooling2D
+from keras.optimizers import RMSprop
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils.data_utils import get_file
 
@@ -42,6 +43,9 @@ class Vgg16:
         self.FCBlock()
         self.model.add(Dense(1000, activation='softmax'))
 
+        fname = 'vgg16.h5'
+        self.model.load_weights(get_file(fname, self.FILE_PATH  + fname, cache_subdir='models'))
+
     def ConvBlock(self, layers, filters):
         model = self.model
         for i in range(layers):
@@ -52,9 +56,10 @@ class Vgg16:
     def FCBlock(self):
         model = self.model
         model.add(Dense(4096, activation='relu'))
+        # model.add(Dropout(0.2))
 
     def get_batches(self, dir, gen=ImageDataGenerator(), batch_size=32):
-        return gen.flow_from_directory(dir, batch_size=batch_size)
+        return gen.flow_from_directory(dir, batch_size=batch_size, target_size=(224, 224))
 
     def finetune(self):
         model = self.model
@@ -62,6 +67,8 @@ class Vgg16:
         for layer in model.layers:
             layer.trainable = False
         model.add(Dense(2, activation='softmax'))
+        model.compile(optimizer=RMSprop(lr=1e-5), loss='binary_crossentropy',
+            metrics=['accuracy'])
 
     def fit(self, batches, steps, epochs=1, validation_batches=None, validation_steps=None):
         return self.model.fit_generator(batches, steps, epochs=epochs,
